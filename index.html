@@ -121,11 +121,11 @@ option{font-weight:400}
 .month-text{font-size:14px;font-weight:600}
 
 /* CONTA SELECTOR — institução + modalidade */
-.inst-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:.5rem}
-.inst-btn{padding:10px 8px;border-radius:11px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);text-align:center;transition:.15s;font-family:'DM Sans',sans-serif}
+.inst-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.5rem}
+.inst-btn{padding:10px 6px;border-radius:11px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);text-align:center;transition:.15s;font-family:'DM Sans',sans-serif}
 .inst-btn.selected{border-color:var(--accent2);background:#EEEDFE;color:var(--accent)}
 .modal-sub{font-size:11px;color:var(--muted);margin-bottom:.5rem;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
-.mod-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.75rem}
+.mod-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:.75rem}
 .mod-btn{padding:10px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);text-align:center;transition:.15s;font-family:'DM Sans',sans-serif}
 .mod-btn.selected{border-color:var(--accent2);background:#EEEDFE;color:var(--accent)}
 .mod-btn.sel-cred{border-color:var(--amber);background:var(--amber-bg);color:var(--amber)}
@@ -376,10 +376,10 @@ option{font-weight:400}
     <!-- PARCELAMENTO (só aparece em crédito) -->
     <div id="parcelas-wrap" style="display:none">
       <div class="parcelas-wrap">
-        <div class="parcelas-title">Parcelar em</div>
+        <div class="parcelas-title">Parcelamento</div>
         <div class="parcelas-grid" id="parcelas-grid"></div>
       </div>
-      <div class="fatura-section" id="fatura-info"></div>
+      <div class="fatura-section" id="fatura-info" style="margin-top:.5rem"></div>
     </div>
   </div>
 
@@ -466,14 +466,11 @@ const DEFAULT={
       {nome:'Aluguel Imóveis',subs:[]},{nome:'Lucros e Dividendos',subs:[]},{nome:'Retiradas',subs:[]},{nome:'CashBack',subs:[]}
     ]
   },
-  // Instituições com cartões de débito e crédito
+  // Instituições — cada banco tem PIX, Débito e Crédito como modalidades
   instituicoes:[
-    {id:'debito-pix',nome:'Débito / PIX',icon:'💸',cartoes:[{id:'debito-pix-deb',nome:'Débito / PIX',modalidade:'debito'}]},
     {id:'dinheiro',nome:'Dinheiro',icon:'💵',cartoes:[{id:'dinheiro-deb',nome:'Dinheiro',modalidade:'debito'}]},
-    {id:'nubank',nome:'Nubank',icon:'💜',cartoes:[{id:'nubank-deb',nome:'Nubank Débito',modalidade:'debito'},{id:'nubank-cred',nome:'Nubank Crédito',modalidade:'credito',limite:8000,venc:12}]},
-    {id:'itau',nome:'Itaú',icon:'🟠',cartoes:[{id:'itau-deb',nome:'Itaú Débito',modalidade:'debito'},{id:'itau-cred',nome:'Itaú Crédito',modalidade:'credito',limite:5000,venc:8}]},
-    {id:'mercado-pago-pf',nome:'Mercado Pago PF',icon:'🟡',cartoes:[{id:'mp-pf-deb',nome:'MP PF Débito',modalidade:'debito'},{id:'mp-pf-cred',nome:'MP PF Crédito',modalidade:'credito',limite:3000,venc:10}]},
-    {id:'banco-inter',nome:'Banco Inter',icon:'🟠',cartoes:[{id:'inter-deb',nome:'Inter Débito',modalidade:'debito'},{id:'inter-cred',nome:'Inter Crédito',modalidade:'credito',limite:2000,venc:5}]}
+    {id:'mercado-pago-pf',nome:'Mercado Pago PF',icon:'🟡',cartoes:[{id:'mp-pf-pix',nome:'PIX',modalidade:'pix'},{id:'mp-pf-deb',nome:'Débito',modalidade:'debito'},{id:'mp-pf-cred',nome:'Crédito',modalidade:'credito',limite:3000,venc:10}]},
+    {id:'banco-inter',nome:'Banco Inter',icon:'🟠',cartoes:[{id:'inter-pix',nome:'PIX',modalidade:'pix'},{id:'inter-deb',nome:'Débito',modalidade:'debito'},{id:'inter-cred',nome:'Crédito',modalidade:'credito',limite:2000,venc:5}]}
   ],
   orcamentos:[],metas:[],recorrentes:[],financ:[]
 };
@@ -597,7 +594,8 @@ function getInstNome(instId,cartaoId){
   const inst=D.instituicoes.find(i=>i.id===instId);
   if(!inst)return instId||'';
   const cart=inst.cartoes.find(c=>c.id===cartaoId);
-  return cart?`${inst.icon} ${inst.nome} · ${cart.modalidade==='credito'?'Crédito':'Débito'}`:`${inst.icon} ${inst.nome}`;
+  const modMap={pix:'PIX',debito:'Débito',credito:'Crédito'};
+  return cart?`${inst.icon} ${inst.nome} · ${modMap[cart.modalidade]||cart.modalidade}`:`${inst.icon} ${inst.nome}`;
 }
 
 function rowHTML(l){
@@ -609,7 +607,7 @@ function rowHTML(l){
   const sign=l.tipo==='receita'?'+':'-';
   const recBadge=l.recId?'<span class="badge-rec">Fixo</span>':'';
   const parcBadge=l.parcTotal>1?`<span class="badge-parc">${l.parcNum}/${l.parcTotal}</span>`:'';
-  const modBadge=l.modalidade==='credito'?'<span class="fatura-badge">💳 Crédito</span>':l.modalidade==='debito'?'<span class="debito-badge">💸 Débito</span>':'';
+  const modBadge=l.modalidade==='credito'?'<span class="fatura-badge">💳 Crédito</span>':l.modalidade==='pix'?'<span class="debito-badge">⚡ PIX</span>':l.modalidade==='debito'?'<span class="debito-badge">💸 Débito</span>':'';
   const pagDisplay=l.instId?getInstNome(l.instId,l.cartaoId):(l.pag||'');
   return `<div class="card-row">
     <div class="row-icon" style="background:${bg}">${icon}</div>
@@ -851,19 +849,30 @@ function buildInstGrid(){
     </button>`).join('');
 }
 
+function modLabel(mod){
+  if(mod==='pix')return'⚡ PIX';
+  if(mod==='debito')return'💸 Débito';
+  if(mod==='credito')return'💳 Crédito';
+  return mod;
+}
+function modClass(mod,selected){
+  let cls='mod-btn';
+  if(selected)cls+=' selected';
+  if(mod==='credito')cls+=' sel-cred';
+  return cls;
+}
+
 window.selectInst=(id,rebuild=true)=>{
   selectedInstId=id;selectedCartaoId=null;selectedParcelas=1;
   if(rebuild)buildInstGrid();
   const inst=D.instituicoes.find(i=>i.id===id);
   if(!inst)return;
   const modWrap=document.getElementById('modalidade-wrap');
-  const modRow=document.getElementById('mod-row');
   modWrap.style.display='block';
-  modRow.innerHTML=inst.cartoes.map(c=>`
-    <button class="mod-btn${selectedCartaoId===c.id?' selected':''}${c.modalidade==='credito'?' sel-cred':''}" onclick="selectCartao('${c.id}')">
-      ${c.modalidade==='credito'?'💳 Crédito':'💸 Débito'}
-    </button>`).join('');
+  document.getElementById('mod-row').innerHTML=inst.cartoes.map(c=>`
+    <button class="${modClass(c.modalidade,false)}" onclick="selectCartao('${c.id}')">${modLabel(c.modalidade)}</button>`).join('');
   document.getElementById('parcelas-wrap').style.display='none';
+  document.getElementById('fatura-info').innerHTML='';
 };
 
 window.selectCartao=(id,rebuild=true)=>{
@@ -872,15 +881,10 @@ window.selectCartao=(id,rebuild=true)=>{
   if(!inst)return;
   const cart=inst.cartoes.find(c=>c.id===id);
   if(!cart)return;
-  // update mod buttons
-  document.querySelectorAll('#mod-row .mod-btn').forEach(btn=>{btn.classList.remove('selected');});
-  // rebuild mod row selected state
-  const modRow=document.getElementById('mod-row');
-  modRow.innerHTML=inst.cartoes.map(c=>`
-    <button class="mod-btn${selectedCartaoId===c.id?' selected':''}${c.modalidade==='credito'?' sel-cred':''}" onclick="selectCartao('${c.id}')">
-      ${c.modalidade==='credito'?'💳 Crédito':'💸 Débito'}
-    </button>`).join('');
-  // parcelamento só no crédito
+  // rebuild modalidade buttons with selected state
+  document.getElementById('mod-row').innerHTML=inst.cartoes.map(c=>`
+    <button class="${modClass(c.modalidade,c.id===id)}" onclick="selectCartao('${c.id}')">${modLabel(c.modalidade)}</button>`).join('');
+  // show parcelas only for credit
   const pw=document.getElementById('parcelas-wrap');
   if(cart.modalidade==='credito'){
     pw.style.display='block';
@@ -888,13 +892,16 @@ window.selectCartao=(id,rebuild=true)=>{
     updateFaturaInfo();
   } else {
     pw.style.display='none';
+    document.getElementById('fatura-info').innerHTML='';
   }
 };
 
 function buildParcelasGrid(){
+  // Rotativo (à vista na fatura) + 2x até 24x
   const pg=document.getElementById('parcelas-grid');
-  pg.innerHTML=[1,2,3,4,5,6,8,10,12].map(n=>`
-    <button class="parc-btn${selectedParcelas===n?' selected':''}" onclick="selectParcelas(${n})">${n}x</button>`).join('');
+  const opts=[{n:1,label:'Rotativo'},...Array.from({length:23},(_,i)=>({n:i+2,label:`${i+2}x`}))];
+  pg.innerHTML=opts.map(o=>`
+    <button class="parc-btn${selectedParcelas===o.n?' selected':''}" onclick="selectParcelas(${o.n})">${o.label}</button>`).join('');
 }
 
 window.selectParcelas=n=>{
@@ -906,14 +913,16 @@ window.selectParcelas=n=>{
 function updateFaturaInfo(){
   const valor=getValorFloat();
   const info=document.getElementById('fatura-info');
-  if(!valor||selectedParcelas<1){info.innerHTML='';return;}
-  const parc=valor/selectedParcelas;
+  if(!valor){info.innerHTML='';return;}
   const inst=D.instituicoes.find(i=>i.id===selectedInstId);
   const cart=inst?.cartoes.find(c=>c.id===selectedCartaoId);
   const venc=cart?.venc||10;
-  info.innerHTML=`<strong>💳 Pagamento no crédito</strong><br>
-    ${selectedParcelas}x de <strong>${fmt(parc)}</strong><br>
-    Lançado na fatura de cada mês · Vence todo dia ${venc}`;
+  if(selectedParcelas===1){
+    info.innerHTML=`<strong>💳 Rotativo</strong> — lançado na fatura deste mês · Vence dia ${venc}`;
+  } else {
+    const parc=valor/selectedParcelas;
+    info.innerHTML=`<strong>💳 ${selectedParcelas}x de ${fmt(parc)}</strong><br>Lançado na fatura dos próximos ${selectedParcelas} meses · Vence todo dia ${venc}`;
+  }
 }
 
 // Atualiza fatura info quando valor muda
@@ -1194,16 +1203,17 @@ window.salvar=async()=>{
   const eid=document.getElementById('f-edit-id').value;
 
   if(!eid&&modalidade==='credito'&&selectedParcelas>1){
-    // Lança múltiplas parcelas
-    const parcVal=valor/selectedParcelas;
+    // Parcelado — lança uma parcela por mês
+    const parcVal=Math.round((valor/selectedParcelas)*100)/100;
     let y=curYear,m=curMonth;
     for(let p=1;p<=selectedParcelas;p++){
       const dataParc=`${y}-${String(m+1).padStart(2,'0')}-${dt.slice(8,10)}`;
-      await addLancamento({tipo:tipoAtual,desc,valor:Math.round(parcVal*100)/100,cat,instId:selectedInstId,cartaoId:selectedCartaoId,modalidade,data:dataParc,obs,parcNum:p,parcTotal:selectedParcelas,criadoEm:new Date().toISOString(),...(fotoBase64&&p===1?{foto:fotoBase64}:{})});
+      await addLancamento({tipo:tipoAtual,desc:`${desc} (${p}/${selectedParcelas})`,valor:parcVal,cat,instId:selectedInstId,cartaoId:selectedCartaoId,modalidade,data:dataParc,obs,parcNum:p,parcTotal:selectedParcelas,criadoEm:new Date().toISOString(),...(fotoBase64&&p===1?{foto:fotoBase64}:{})});
       m++;if(m>11){m=0;y++;}
     }
     toast(`${selectedParcelas}x de ${fmt(parcVal)} lançados ✓`);
   } else {
+    // À vista (débito, pix) ou rotativo (crédito 1x)
     const payload={tipo:tipoAtual,desc,valor,cat,instId:selectedInstId,cartaoId:selectedCartaoId,modalidade,data:dt,obs,parcNum:1,parcTotal:1,criadoEm:new Date().toISOString()};
     if(fotoBase64)payload.foto=fotoBase64;
     if(eid)await updateLancamento(eid,payload);
